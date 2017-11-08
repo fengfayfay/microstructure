@@ -14,9 +14,11 @@ class Ray():
         return self.O + self.D * t
 
 class Hit():
-    def __init__(self, P, N):
+    def __init__(self, P, N, side=None, bounce=None):
         self.P = P
         self.N = N
+        self.side = side
+        self.bounce = bounce
 
     def __str__(self):
         return 'Hit({}, {})'.format(self.P, self.N)

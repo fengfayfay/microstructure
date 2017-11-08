@@ -1,4 +1,4 @@
-from math import sqrt
+from math import sqrt, cos, radians
 from vec3 import Vec3, dot
 from ray import Ray, Hit, reflect, TMAX
 from plane import Plane
@@ -7,10 +7,11 @@ from plane import Plane
 # VGroove with axis along y
 #
 class VGroove:
-    def __init__(self, cosh):
-        nz = cosh
-        nx = 1-sqrt(nz*nz)
-        height = 1/nx
+    def __init__(self, h):
+        nz = cos(radians(h))
+        nx = sqrt(1-nz*nz)
+        height = nz/nx
+        #print(nx, nz, height)
         self.lside = Plane( Vec3(0.0, 0.0, -height), Vec3( nx, 0.0, nz) )
         self.rside = Plane( Vec3(0.0, 0.0, -height), Vec3(-nx, 0.0, nz) )
 
@@ -39,25 +40,25 @@ class VGroove:
             if p.z <= 0.:
                 if   tmin == t1:
                     #print('hit left side')
-                    hit = Hit(p, self.lside.N)
+                    hit = Hit(p, self.lside.N, 'left')
                 elif tmin == t2:
                     #print('hit right side')
-                    hit = Hit(p, self.rside.N)
+                    hit = Hit(p, self.rside.N, 'right')
                 #print(hit)
         return hit
 
     def trace(self, ray):
         hits = []
         hit = self.intersect(ray)
-        r = ray
         bounce = 1
         while hit:
-            r = Ray(hit.P, reflect(hit.N, r.D))
-            hit.r = r
             hit.bounce = bounce
-            bounce += 1
+            hit.i = ray.D
+            hit.r = reflect(hit.N, ray.D)
             hits.append(hit)
-            hit = self.intersect(r)
+            ray = Ray(hit.P, hit.r)
+            bounce += 1
+            hit = self.intersect(ray)
         return hits
        
         
