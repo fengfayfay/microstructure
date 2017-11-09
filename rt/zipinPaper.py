@@ -41,15 +41,8 @@ def far(theta, phi):
 
 def near(theta, phi):
     gAngle = 2.0 * theta 
-    psi_min = mt.pi - 2.0 * phi
-    if isNinety(phi):
-        y_h_max = 0
-    else:
-        y_h_max = mt.tan(theta)/mt.tan(phi)
-
-    s = (1.0-y_h_max) * mt.sin(theta-phi)
-    offset = mt.asin(s)
-    psi_max = mt.pi - (theta + phi) + offset
+    psi_max = mt.pi - 2.0 * phi
+    psi_min = mt.pi - theta -phi 
 
     n_min= mt.ceil(psi_min/gAngle)
     n_max = mt.ceil(psi_max/gAngle)
