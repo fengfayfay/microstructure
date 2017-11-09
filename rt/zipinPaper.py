@@ -76,6 +76,7 @@ def zipinPaper(theta, phi):
         return near(thetaR, phiR)
 
 if __name__ == "__main__":
+    import sys
     if len(sys.argv) != 3:
         print('python3 zipin.py theta phi')
         sys.exit(0)
