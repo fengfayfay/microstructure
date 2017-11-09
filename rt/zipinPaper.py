@@ -21,14 +21,15 @@ def XIntersect(psi, theta, phi):
     return x
 
 
-def far(theta, phi):
+def far(theta, phi, maxX):
 
     gAngle = 2.0 * theta 
     psi_min = mt.pi - 2.0 *(theta + phi)
     if isNinety(phi):
         y_h_max = 0
     else:
-        y_h_max = mt.tan(theta)/mt.tan(phi)
+        y_max = (mt.sin(theta) + maxX) / (mt.tan(theta) + mt.tan(phi)) 
+        y_h_max = y_max / mt.cos(theta)
 
     s = (1.0-y_h_max) * mt.sin(theta+phi)
     offset = mt.asin(s)
@@ -41,6 +42,10 @@ def far(theta, phi):
 
     x_max_intersect = XIntersect(psi_max, theta, phi)
     x_min_intersect = XIntersect(psi_min, theta, phi)
+
+    x_critical_intersect = XIntersect(n_min * gAngle, theta, phi);
+    print('critical value of x: ' + repr(x_critical_intersect))
+    print('ratio of min x: ' +  repr((x_critical_intersect-x_min_intersect)/(2.0*mt.sin(theta))))
 
     if n_min%2:
         xi_min *= -1 
@@ -57,6 +62,9 @@ def near(theta, phi):
     psi_max = mt.pi - 2.0 * phi
     psi_min = mt.pi - theta -phi 
 
+    x_near_min = mt.cos(theta) * mt.tan(theta-phi)
+    print('minimum x value for near hit: ' + repr(x_near_min))
+
     n_min= mt.ceil(psi_min/gAngle)
     n_max = mt.ceil(psi_max/gAngle)
     xi_min = mt.pi + phi - n_min * gAngle
@@ -67,12 +75,12 @@ def near(theta, phi):
     if n_max%2 == 0:
         xi_max *= -1 
    
-    x_min_intersect = 0
-    x_max_intersect = 0
+    x_min_intersect = x_near_min
+    x_max_intersect = mt.sin(theta)
     hits = []
     hits.append((mt.degrees(xi_min), x_min_intersect, n_min, 'right'))
     hits.append((mt.degrees(xi_max), x_max_intersect, n_max, 'right')) 
-    return hits
+    return (hits, x_near_min)
 
 def zipinPaper(theta, phi):
     thetaR = mt.radians(theta)
@@ -82,9 +90,11 @@ def zipinPaper(theta, phi):
     print((-xmax, xmax))
 
     if phiR > thetaR:
-        return far(thetaR, phiR)
+        return far(thetaR, phiR, mt.sin(thetaR))
     else:
-        return near(thetaR, phiR)
+        (hits, x_near_min) = near(thetaR, phiR) 
+        hits += far(thetaR, phiR, x_near_min)
+        return hits
 
 if __name__ == "__main__":
     import sys
