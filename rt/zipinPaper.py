@@ -11,6 +11,16 @@ def clamp(x, xmax):
 def isNinety(phi):
     return abs(phi - mt.pi * .5) < .000001
 
+def XIntersect(psi, theta, phi):
+    angleA = mt.pi - (psi+theta+phi)
+    thetaPlusPhi = theta + phi
+    ycOverH =  mt.sin(angleA)/mt.sin(theta+phi)
+    h = mt.cos(theta)
+    y = h * (1.0 - ycOverH)
+    x = y * mt.tan(theta) + y * mt.tan(phi) - mt.sin(theta) 
+    return x
+
+
 def far(theta, phi):
 
     gAngle = 2.0 * theta 
@@ -29,14 +39,17 @@ def far(theta, phi):
     xi_min = mt.pi - phi - n_min * gAngle
     xi_max = mt.pi - phi - n_max * gAngle
 
+    x_max_intersect = XIntersect(psi_max, theta, phi)
+    x_min_intersect = XIntersect(psi_min, theta, phi)
+
     if n_min%2:
         xi_min *= -1 
     if n_max%2:
         xi_max *= -1 
    
     hits = []
-    hits.append((n_min, xi_min))
-    hits.append((n_max, xi_max)) 
+    hits.append((mt.degrees(xi_min), x_min_intersect, n_min, 'left'))
+    hits.append((mt.degrees(xi_max), x_max_intersect, n_max, 'left')) 
     return hits
 
 def near(theta, phi):
@@ -54,14 +67,19 @@ def near(theta, phi):
     if n_max%2 == 0:
         xi_max *= -1 
    
+    x_min_intersect = 0
+    x_max_intersect = 0
     hits = []
-    hits.append((n_min, xi_min))
-    hits.append((n_max, xi_max)) 
+    hits.append((mt.degrees(xi_min), x_min_intersect, n_min, 'right'))
+    hits.append((mt.degrees(xi_max), x_max_intersect, n_max, 'right')) 
     return hits
 
 def zipinPaper(theta, phi):
     thetaR = mt.radians(theta)
     phiR = mt.radians(phi)
+
+    xmax = mt.sin(thetaR)
+    print((-xmax, xmax))
 
     if phiR > thetaR:
         return far(thetaR, phiR)
