@@ -21,15 +21,17 @@ def XIntersect(psi, theta, phi):
     return x
 
 
-def far(theta, phi, maxX):
+def far(theta, phi, maxX, hasMaxX):
 
     gAngle = 2.0 * theta 
     psi_min = mt.pi - 2.0 *(theta + phi)
     if isNinety(phi):
         y_h_max = 0
     else:
-        y_max = (mt.sin(theta) + maxX) / (mt.tan(theta) + mt.tan(phi)) 
-        y_h_max = y_max / mt.cos(theta)
+        if hasMaxX:
+            y_h_max = 1
+        else:
+            y_h_max =  2.0 * mt.tan(theta)  / (mt.tan(theta) + mt.tan(phi)) 
 
     s = (1.0-y_h_max) * mt.sin(theta+phi)
     offset = mt.asin(s)
@@ -90,10 +92,10 @@ def zipinPaper(theta, phi):
     print((-xmax, xmax))
 
     if phiR > thetaR:
-        return far(thetaR, phiR, mt.sin(thetaR))
+        return far(thetaR, phiR, mt.sin(thetaR), False)
     else:
         (hits, x_near_min) = near(thetaR, phiR) 
-        hits += far(thetaR, phiR, x_near_min)
+        hits += far(thetaR, phiR, x_near_min, True)
         return hits
 
 if __name__ == "__main__":
