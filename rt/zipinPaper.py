@@ -1,6 +1,8 @@
 import math as mt
 import sys as system
 
+MAXBOUNCE = 10 
+
 def clamp(x, xmax):
     x /= xmax
     if x < -1.: return -1.
@@ -64,7 +66,8 @@ def near(theta, phi):
     psi_max = mt.pi - 2.0 * phi
     psi_min = mt.pi - theta -phi 
 
-    x_near_min = mt.cos(theta) * mt.tan(theta-phi)
+    x_near_min = mt.cos(theta) * mt.tan(phi)
+    #x_near_min = mt.cos(theta) * mt.tan(theta-phi)
     print('minimum x value for near hit: ' + repr(x_near_min))
 
     n_min= mt.ceil(psi_min/gAngle)
@@ -98,14 +101,27 @@ def zipinPaper(theta, phi):
         hits += far(thetaR, phiR, x_near_min, True)
         return hits
 
+
+def zipinBrdf(phi, chi):
+    n = 1
+    while n < MAXBOUNCE:
+        theta = (180 - phi - chi) * .5 / n
+        hits = zipinPaper(theta, phi)
+        print(hits)
+        n += 1
+    
+    
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 3:
         print('python3 zipin.py theta phi')
         sys.exit(0)
 
-    theta = float(sys.argv[1])
-    phi = float(sys.argv[2])
+    #theta = float(sys.argv[1])
+    phi = float(sys.argv[1])
+    chi = float(sys.argv[2])
 
-    print(zipinPaper(theta, phi))
+    #print(zipinPaper(theta, phi))
+    print(zipinBrdf(phi, chi))
 
