@@ -102,9 +102,14 @@ def near(theta, phi, range):
  
     return (hits, x_near_min)
 
-def zipinPaper(theta, phi):
-    thetaR = mt.radians(theta)
-    phiR = mt.radians(phi)
+def zipinPaper(theta, phi, isDegrees = True):
+
+    if isDegrees:
+        thetaR = mt.radians(theta)
+        phiR = mt.radians(phi)
+    else:
+        thetaR = theta
+        phiR = phi
 
     xmax = mt.sin(thetaR)
     print((-xmax, xmax))
