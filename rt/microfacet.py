@@ -161,7 +161,8 @@ class Microfacet:
         wo = -wo if flip else wo
         wh = self.BeckmannSample(wo, u[0], u[1])
         if flip:
-            wh = -wh
+            wh[0] = -wh[0]
+            wh[1] = -wh[1]
         return wh
     
     def D(self, wh):
@@ -173,5 +174,5 @@ class Microfacet:
         return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
                         Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi + self.alpha_x * self.alpha_y * cos4Theta)
 
-    def Pdf(self, wo, wh):
+    def Pdf(self, wh):
         return self.D(wh) * math.fabs(CosTheta(wh))
