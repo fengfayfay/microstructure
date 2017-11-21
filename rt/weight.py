@@ -23,7 +23,7 @@ def weightedRandomChoice(weightDict):
         #weights.append(weightDict[elem])
         weights.append(elem[1])
         elems.append(elem[0])
-    print(weights)
+    #print(weights)
     total = sum(weights)
     key = random.uniform(0, total)
     runningTotal = 0.0
@@ -32,7 +32,7 @@ def weightedRandomChoice(weightDict):
         weight = weights[i]
         runningTotal += weight
         prob = weight/total
-        print(prob)
+        #print(prob)
         if runningTotal > key:
             chosenIndex = i
             return (elems[chosenIndex], prob)
