@@ -74,7 +74,7 @@ def near(theta, phi, range):
 
     x_near_min = mt.cos(theta) * mt.tan(phi)
     #x_near_min = mt.cos(theta) * mt.tan(theta-phi)
-    print('minimum x value for near hit: ' + repr(x_near_min))
+    #print('minimum x value for near hit: ' + repr(x_near_min))
 
     n_min= mt.ceil(psi_min/gAngle)
     n_max = mt.ceil(psi_max/gAngle)
