@@ -79,7 +79,7 @@ class ZipinBrdf(Brdf):
         wi = microfacet.SphericalDirection(sinThetaH, cosThetaH, phi)
         #value = self.MicrofacetValue(wo, wi, wh)
         value = self.microfacet.D(wh) * prob
-        return (value, pdf, wi)
+        return (value, pdf, wi, wh)
 
     def Eval(self, wo, wi):
         wo = wo.norm()
@@ -95,7 +95,7 @@ class ZipinBrdf(Brdf):
         pdf = 0
 
         for n in range(1, MAXBOUNCE):
-            grooveTheta = (math.pi - groovePhi - grooveChi) * .5 / n
+            grooveTheta = math.fabs(math.pi - groovePhi - grooveChi) * .5 / n
             grooveAlpha = math.pi * .5 - grooveTheta
             wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
             microfacetD = self.microfacet.D(wh)
@@ -103,15 +103,15 @@ class ZipinBrdf(Brdf):
             print(wh)
             print(microfacetD)
             print(microfacetPdf)
-
             
             hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
-            print(hits)
+            #print(hits)
             #hit[0] is sample, hit[1] is weight
             for hit in hits:
                 hitChi = hit[0][0]
                 diff = math.fabs(math.fabs(hitChi) - math.fabs(grooveChi))
                 if diff < ANGLEERROR and hit[1] > 0:
+                    print(hit)
                     value += microfacetD * hit[1]
                     pdf += microfacetPdf * hit[1]
                     break
