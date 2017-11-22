@@ -75,7 +75,7 @@ class ZipinBrdf(Brdf):
         #for hit in hits:
         #    dict[hit[0]] = hit[1]
         (sample, prob) = weight.weightedRandomChoice(hits)
-        pdf = self.Pdf(wh) * prob
+        pdf = self.Pdf(wo, wh) * prob
 
         thetaH = sample[0]
         #each sample contains the exit angle and the bounce count
@@ -86,25 +86,25 @@ class ZipinBrdf(Brdf):
         value = self.MicrofacetValue(wo, wi, wh) * prob
         return (value, pdf, wi, wh)
 
-    def EvalNearHits(self, phi, chi, n):
+    def EvalNearHits(self, wo, wi, phi, chi, n):
         sign = -1 if n % 2 == 0 else 1
         chi *= sign
         theta = (math.pi + phi - chi) *.5/n
-        return self.EvalHits(chi, phi, theta, n, 'right')
+        return self.EvalHits(wo, wi, chi, phi, theta, n, 'right')
 
-    def EvalFarHits(self, phi, chi, n):
+    def EvalFarHits(self, wo, wi, phi, chi, n):
         sign = -1 if n % 2 else 1
         chi *= sign
         theta = (math.pi -phi -chi) * .5/n
-        return self.EvalHits(chi, phi, theta, n, 'left')
+        return self.EvalHits(wo, wi, chi, phi, theta, n, 'left')
 
-    def EvalHits(self, grooveChi, groovePhi, grooveTheta, n, side):
+    def EvalHits(self, wo, wi, grooveChi, groovePhi, grooveTheta, n, side):
          
         dprint("theta: "+ repr(grooveTheta))
         grooveAlpha = math.pi * .5 - grooveTheta
         wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
-        microfacetD = self.MicrofacetValue(wh)
-        microfacetPdf = self.Pdf(wh)
+        microfacetD = self.MicrofacetValue(wo, wi, wh)
+        microfacetPdf = self.Pdf(wi, wh)
         #dprint(wh, microfacetD, microfacetPdf, side)
         hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
        
@@ -138,12 +138,12 @@ class ZipinBrdf(Brdf):
         pdf = 0
 
         for n in range(1, MAXBOUNCE):
-            (nearHit, tmpvalue, tmppdf) = self.EvalNearHits(groovePhi, grooveChi, n)
+            (nearHit, tmpvalue, tmppdf) = self.EvalNearHits(wo, wi, groovePhi, grooveChi, n)
             if nearHit:
                 value += tmpvalue
                 pdf += tmppdf
             else:
-                (farHit, tmpvalue, tmppdf) = self.EvalFarHits(groovePhi, grooveChi, n)
+                (farHit, tmpvalue, tmppdf) = self.EvalFarHits(wo, wi, groovePhi, grooveChi, n)
                 value += tmpvalue
                 pdf += tmppdf
         return (value, pdf)
