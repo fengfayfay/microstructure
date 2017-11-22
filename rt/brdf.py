@@ -75,7 +75,7 @@ class ZipinBrdf(Brdf):
         #for hit in hits:
         #    dict[hit[0]] = hit[1]
         (sample, prob) = weight.weightedRandomChoice(hits)
-        pdf = self.microfacet.Pdf(wh) * prob
+        pdf = self.Pdf(wh) * prob
 
         thetaH = sample[0]
         #each sample contains the exit angle and the bounce count
@@ -83,8 +83,7 @@ class ZipinBrdf(Brdf):
         sinThetaH = math.sin(thetaH)
         cosThetaH = math.cos(thetaH)
         wi = microfacet.SphericalDirection(sinThetaH, cosThetaH, phi)
-        #value = self.MicrofacetValue(wo, wi, wh)
-        value = self.microfacet.D(wh) * prob
+        value = self.MicrofacetValue(wo, wi, wh) * prob
         return (value, pdf, wi, wh)
 
     def EvalNearHits(self, phi, chi, n):
@@ -104,8 +103,8 @@ class ZipinBrdf(Brdf):
         dprint("theta: "+ repr(grooveTheta))
         grooveAlpha = math.pi * .5 - grooveTheta
         wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
-        microfacetD = self.microfacet.D(wh)
-        microfacetPdf = self.microfacet.Pdf(wh)
+        microfacetD = self.MicrofacetValue(wh)
+        microfacetPdf = self.Pdf(wh)
         #dprint(wh, microfacetD, microfacetPdf, side)
         hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
        
