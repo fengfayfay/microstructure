@@ -30,12 +30,18 @@ class Brdf:
         value = self.microfacet.D(wh)
         cosThetaI = microfacet.CosTheta(wi)
         cosThetaO = microfacet.CosTheta(wo)
+        if wo.z * wi.z <= 0:
+            return 0
         value *= .25/(cosThetaI*cosThetaO)
         return value
         
     def Sample(self, wo, u):
         wo = wo.norm()
+        if wo.z == 0:
+            return (0, 0, None)
         (wh, cosTheta, phi) = self.microfacet.Sample_wh(wo, u)
+        if wh.x == 0 and wh.y == 0 and wh.z == 0:
+            return (0, 0, None)
         wi = ray.reflect(wh, -wo)
         value = self.MicrofacetValue(wo, wi, wh)
         pdf = self.microfacet.Pdf(wh) * .25 / vec3.dot(wo, wh)
@@ -62,7 +68,11 @@ class ZipinBrdf(Brdf):
     #       and final grooveChi
     def Sample(self, wo, u):
         wo = wo.norm()
+        if wo.z == 0:
+            return (0, 0, None, None)
         (wh, cosTheta, phi) = self.microfacet.Sample_wh(wo, u)
+        if wh.x == 0 and wh.y == 0 and wh.z == 0:
+            return (0, 0, None, None)
         grooveAlpha = math.acos(cosTheta)
         grooveTheta = math.pi * .5 - grooveAlpha 
         cosThetaO = microfacet.CosTheta(wo)
