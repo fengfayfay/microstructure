@@ -14,6 +14,9 @@ def dprint(s):
     if debug == 1:
         print(s)
 
+def reflect(wo, n):
+    return -wo + n * vec3.dot(wo, n) * 2.0
+
 
 class Brdf:
     def __init__(self, alpha_x, alpha_y):
@@ -26,32 +29,39 @@ class Brdf:
 
     #given wo, return sampled wi
 
-    def MicrofacetValue(self, wo, wi, wh):
-        value = self.microfacet.D(wh)
+    def MicrofacetValue(self, wo, wi, wh, withoutG = False):
         cosThetaI = microfacet.CosTheta(wi)
         cosThetaO = microfacet.CosTheta(wo)
-        if wo.z * wi.z <= 0:
+        if cosThetaI == 0 or cosThetaO == 0:
             return 0
+        if wh.x==0 and wh.y ==0 and wh.z == 0:
+            return 0
+        value = self.microfacet.D(wh)
         value *= .25/(cosThetaI*cosThetaO)
-        return value
+        if withoutG:
+            return value
+        else:
+            return  value * self.microfacet.G(wo, wi)
         
-    def Sample(self, wo, u):
+    def Sample(self, wo, u, withoutG=False):
         wo = wo.norm()
         if wo.z == 0:
             return (0, 0, None)
         (wh, cosTheta, phi) = self.microfacet.Sample_wh(wo, u)
         if wh.x == 0 and wh.y == 0 and wh.z == 0:
             return (0, 0, None)
-        wi = ray.reflect(wh, -wo)
-        value = self.MicrofacetValue(wo, wi, wh)
+        wi = reflect(wo, wh)
+        #if wi.z * wo.z <= 0:
+        #    return (0, 0, None)
+        value = self.MicrofacetValue(wo, wi, wh, withoutG)
         pdf = self.microfacet.Pdf(wh) * .25 / vec3.dot(wo, wh)
         return (value, pdf, wi)
     
 
-    def Eval(self, wo, wi):
+    def Eval(self, wo, wi, withoutG = False):
         wo = wo.norm()
         wh = (wo + wi).norm()
-        value = self.MicrofacetValue(wo, wi, wh)
+        value = self.MicrofacetValue(wo, wi, wh, withoutG)
         pdf = self.Pdf(wo, wh)
         return (value, pdf)
 
@@ -85,7 +95,6 @@ class ZipinBrdf(Brdf):
         #for hit in hits:
         #    dict[hit[0]] = hit[1]
         (sample, prob) = weight.weightedRandomChoice(hits)
-        pdf = self.Pdf(wo, wh) * prob
 
         thetaH = sample[0]
         #each sample contains the exit angle and the bounce count
@@ -93,7 +102,14 @@ class ZipinBrdf(Brdf):
         sinThetaH = math.sin(thetaH)
         cosThetaH = math.cos(thetaH)
         wi = microfacet.SphericalDirection(sinThetaH, cosThetaH, phi)
-        value = self.MicrofacetValue(wo, wi, wh) * prob
+
+        scaleD = .25 * vec3.dot(wi, wh)
+        microfacetD = self.microfacet.D(wh) * scaleD
+        scalePdf = .25 * vec3.dot(wo, wh)
+        microfacetPdf = self.microfacet.Pdf(wh) * scalePdf
+        value = microfacetD * prob
+        pdf = microfacetPdf * prob
+
         return (value, pdf, wi, wh)
 
     def EvalNearHits(self, wo, wi, phi, chi, n):
@@ -113,8 +129,12 @@ class ZipinBrdf(Brdf):
         dprint("theta: "+ repr(grooveTheta))
         grooveAlpha = math.pi * .5 - grooveTheta
         wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
-        microfacetD = self.MicrofacetValue(wo, wi, wh)
-        microfacetPdf = self.Pdf(wi, wh)
+        #microfacetD = self.MicrofacetValue(wo, wi, wh, True)
+        #microfacetPdf = self.Pdf(wi, wh)
+        scaleD = .25 * vec3.dot(wi, wh)
+        microfacetD = self.microfacet.D(wh) * scaleD
+        scalePdf = .25 * vec3.dot(wo, wh)
+        microfacetPdf = self.microfacet.Pdf(wh) * scalePdf
         #dprint(wh, microfacetD, microfacetPdf, side)
         hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
        
@@ -149,13 +169,11 @@ class ZipinBrdf(Brdf):
 
         for n in range(1, MAXBOUNCE):
             (nearHit, tmpvalue, tmppdf) = self.EvalNearHits(wo, wi, groovePhi, grooveChi, n)
-            if nearHit:
-                value += tmpvalue
-                pdf += tmppdf
-            else:
-                (farHit, tmpvalue, tmppdf) = self.EvalFarHits(wo, wi, groovePhi, grooveChi, n)
-                value += tmpvalue
-                pdf += tmppdf
+            value += tmpvalue
+            pdf += tmppdf
+            (farHit, tmpvalue, tmppdf) = self.EvalFarHits(wo, wi, groovePhi, grooveChi, n)
+            value += tmpvalue
+            pdf += tmppdf
         return (value, pdf)
                 
             

@@ -153,17 +153,13 @@ class Microfacet:
         wh = SphericalDirection(sinTheta, cosTheta, phi)
         if wi.z * wh.z < 0:
             wh = -wh
+            cosTheta = -cosTheta
         return (wh, cosTheta,  phi)
 
 
     def Sample_wh(self, wo, u):
-        flip = wo.z < 0
-        wo = -wo if flip else wo
-        wh = self.BeckmannSample(wo, u[0], u[1])
-        if flip:
-            wh[0] = -wh[0]
-            wh[1] = -wh[1]
-        return wh
+        (wh, cosTheta, phi) = self.BeckmannSample(wo, u[0], u[1])
+        return (wh, cosTheta, phi)
     
     def D(self, wh):
         tan2Theta = Tan2Theta(wh)
@@ -173,6 +169,25 @@ class Microfacet:
         cos4Theta *= cos4Theta
         return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
                         Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi + self.alpha_x * self.alpha_y * cos4Theta)
+
+
+    def GLambda(self, w):
+        absTanTheta = math.fabs(TanTheta(w))
+        if math.isinf(absTanTheta):
+            return 0.0
+        alpha = math.sqrt(Cos2Phi(w) * self.alpha_x * self.alpha_x + Sin2Phi(w) * self.alpha_y * self.alpha_y)
+        if alpha == 0 or absTanTheta == 0:
+            return 0.0
+        a = 1.0/(alpha * absTanTheta)
+        if a > 1.6:
+            return 0.0
+        return (1 - 1.259 * a + 0.396 * a * a) / (3.535 * a + 2.181 * a * a)
+
+    def G1(self, w):
+        return 1.0/(1.0+self.GLambda(w))
+
+    def G(self, wo, wi):
+        return self.G1(wo) * self.G1(wi)
 
     def Pdf(self, wh):
         return self.D(wh) * math.fabs(CosTheta(wh))
