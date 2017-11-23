@@ -37,11 +37,12 @@ class Brdf:
         if wh.x==0 and wh.y ==0 and wh.z == 0:
             return 0
         value = self.microfacet.D(wh)
-        value *= .25/(cosThetaI*cosThetaO)
+        #value *= .25/(cosThetaI*cosThetaO)
+        value *= .25/(cosThetaO)
         if withoutG:
             return value
         else:
-            return  value * self.microfacet.G(wo, wi)
+            return  value * self.microfacet.G(wo, wi, wh)
         
     def Sample(self, wo, u, withoutG=False):
         wo = wo.norm()

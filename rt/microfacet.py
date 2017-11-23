@@ -48,6 +48,8 @@ def CosDPhi(wa, wb):
         (wb.x * wb.x + wb.y * wb.y)),
         -1, 1)
 
+def ChiPlus(x):
+    return 1 if x >0 else 0
 
 def ErfInv(x): 
     x = Clamp(x, -.99999, .99999);
@@ -79,11 +81,16 @@ def ErfInv(x):
 def SphericalDirection (sinTheta, cosTheta, phi):
     return vec3.Vec3(sinTheta*math.cos(phi), sinTheta * math.sin(phi), cosTheta)
 
+def RoughnessToAlpha(roughness):
+    roughness = max(roughness, float(1e-3));
+    x = math.log(roughness);
+    return 1.62142 + 0.819955 * x + 0.1734 * x * x + 0.0171201 * x * x * x + 0.000640711 * x * x * x * x
 
 class Microfacet:
     def __init__(self, alpha_x, alpha_y):
+        self.alpha_x = RoughnessToAlpha(alpha_x)
         self.alpha_x = alpha_x
-        self.alpha_y = alpha_y
+        self.alpha_y = self.alpha_x 
 
     def BeckmannSample11(cosThetaI, U1, U2):
         if cosThetaI > .9999:
@@ -167,6 +174,8 @@ class Microfacet:
             return 0
         cos4Theta = Cos2Theta(wh)
         cos4Theta *= cos4Theta
+        #return ChiPlus(wh.z) * math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
+        #                Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
         return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
                         Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
 
@@ -180,15 +189,27 @@ class Microfacet:
             return 0.0
         a = 1.0/(alpha * absTanTheta)
         if a > 1.6:
-            return 0.0
+            return 0 
         return (1 - 1.259 * a + 0.396 * a * a) / (3.535 * a + 2.181 * a * a)
+
+    def GLambdaWalter(self, w, wh):
+        costhetav = math.fabs(w.z)
+        tanthetav = math.sqrt(1.0 - costhetav*costhetav)/costhetav
+        a = 1.0/(self.alpha_x * tanthetav)
+        if (a<1.6):
+            iG1i = ChiPlus(vec3.dot(w, wh)/w.z) * (3.535*a + 2.181*a*a)/(1 + 2.276*a + 2.577*a*a)
+        else:
+            iG1i = ChiPlus(vec3.dot(w, wh)/w.z)
+        return iG1i
+        
 
     def G1(self, w):
         return 1.0/(1.0+self.GLambda(w))
 
-    def G(self, wo, wi):
+    def G(self, wo, wi, wh):
         #return 1.0/(1.0 + self.GLambda(wo) + self.GLambda(wi))
-        return self.G1(wo) * self.G1(wi)
+
+        return self.GLambdaWalter(wo, wh) * self.GLambdaWalter(wi, wh)
 
     def Pdf(self, wh):
         return self.D(wh) * math.fabs(CosTheta(wh))
