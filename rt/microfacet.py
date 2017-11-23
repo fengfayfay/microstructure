@@ -168,7 +168,7 @@ class Microfacet:
         cos4Theta = Cos2Theta(wh)
         cos4Theta *= cos4Theta
         return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
-                        Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi + self.alpha_x * self.alpha_y * cos4Theta)
+                        Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
 
 
     def GLambda(self, w):
@@ -187,6 +187,7 @@ class Microfacet:
         return 1.0/(1.0+self.GLambda(w))
 
     def G(self, wo, wi):
+        #return 1.0/(1.0 + self.GLambda(wo) + self.GLambda(wi))
         return self.G1(wo) * self.G1(wi)
 
     def Pdf(self, wh):
