@@ -1,5 +1,6 @@
 import microfacet
 import zipinPaper
+import zipin
 import math
 import vec3
 import ray
@@ -37,7 +38,6 @@ class Brdf:
         if wh.x==0 and wh.y ==0 and wh.z == 0:
             return 0
         value = self.microfacet.D(wh)
-        #value *= .25/(cosThetaI*cosThetaO)
         value *= .25/(cosThetaO)
         if withoutG:
             return value
@@ -52,10 +52,8 @@ class Brdf:
         if wh.x == 0 and wh.y == 0 and wh.z == 0:
             return (0, 0, None)
         wi = reflect(wo, wh)
-        #if wi.z * wo.z <= 0:
-        #    return (0, 0, None)
         value = self.MicrofacetValue(wo, wi, wh, withoutG)
-        pdf = self.microfacet.Pdf(wh) * .25 / vec3.dot(wo, wh)
+        pdf = self.Pdf(wo, wh) 
         return (value, pdf, wi)
     
 
@@ -73,6 +71,13 @@ MAXBOUNCE = 2
 MICROFACETTHRESH = .000001
 
 class ZipinBrdf(Brdf):
+    def __init__(self, alpha_x, alpha_y, zipinVersion):
+        self.microfacet = microfacet.Microfacet(alpha_x, alpha_y)
+        print('zipinVersion: ', zipinVersion)
+        if zipinVersion == 'Feng':
+            self.zipin = zipinPaper.zipin
+        else:
+            self.zipin = zipin.zipin
 
     #TODO:  figure out the correct normalization factors
     #       and angle orientations for grooveTheta
@@ -91,20 +96,18 @@ class ZipinBrdf(Brdf):
         groovePhi = math.acos(cosThetaO)
 
         
-        hits = zipinPaper.zipinPaper(math.degrees(grooveTheta), math.degrees(groovePhi))
+        hits = self.zipin(math.degrees(grooveTheta), math.degrees(groovePhi))
         (sample, prob) = weight.weightedRandomChoice(hits)
 
-        thetaH = math.radians(sample[0])
+        thetaH = math.radians(sample)
         dprint(sample)
         sinThetaH = math.sin(thetaH)
         cosThetaH = math.cos(thetaH)
         wi = microfacet.SphericalDirection(sinThetaH, cosThetaH, phiH)
 
-        scaleD = .25 * vec3.dot(wi, wh)
-        microfacetD = self.microfacet.D(wh) * scaleD
-        scalePdf = .25 * vec3.dot(wo, wh)
-        microfacetPdf = self.microfacet.Pdf(wh) * scalePdf
-        value = microfacetD * prob
+        microfacetValue = self.MicrofacetValue(wo, wi, wh, True)
+        microfacetPdf = self.Pdf(wo, wh)
+        value = microfacetValue * prob
         pdf = microfacetPdf * prob
 
         return (value, pdf, wi, wh)
@@ -125,30 +128,31 @@ class ZipinBrdf(Brdf):
          
         dprint("theta: "+ repr(grooveTheta))
         grooveAlpha = math.pi * .5 - grooveTheta
-        wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
-        scaleD = .25 * vec3.dot(wi, wh)
-        microfacetD = self.microfacet.D(wh) * scaleD
-        scalePdf = .25 * vec3.dot(wo, wh)
-        microfacetPdf = self.microfacet.Pdf(wh) * scalePdf
-        if microfacetD < MICROFACETTHRESH:
+        if side == 'left':
+            wh = microfacet.SphericalDirection(-math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
+        else:
+            wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
+
+        microfacetValue = self.MicrofacetValue(wo, wi, wh, True)
+        microfacetPdf = self.Pdf(wo, wh)
+        if microfacetValue < MICROFACETTHRESH:
             return (False, 0, 0)
-        hits = zipinPaper.zipinPaper(math.degrees(grooveTheta), math.degrees(groovePhi))
+        hits = self.zipin(math.degrees(grooveTheta), math.degrees(groovePhi))
        
         value = 0;
         pdf = 0;
         for hit in hits:
             if hit[3] != side:
                 continue
-            hitChi = math.radians(hit[0][0])
-            diff = math.fabs(math.fabs(hitChi) - math.fabs(grooveChi))
-            #diff = math.fabs(hitChi - grooveChi)
+            hitChi = math.radians(hit[0])
+            #diff = math.fabs(math.fabs(hitChi) - math.fabs(grooveChi))
+            diff = math.fabs(hitChi - grooveChi)
             if diff < ANGLEERROR and hit[1] > 0:
                 #print(groovePhi, grooveTheta, wh, microfacetD, microfacetPdf, hit[1], side)
                 #print(hit)
-                value += microfacetD * hit[1]
+                value += microfacetValue * hit[1]
                 pdf += microfacetPdf * hit[1]
-                return (True, value, pdf)
-        return (False, 0, 0)
+        return (value>0, value, pdf)
         
 
     def Eval(self, wo, wi, maxBounce = MAXBOUNCE):
@@ -168,6 +172,8 @@ class ZipinBrdf(Brdf):
             (nearHit, tmpvalue, tmppdf) = self.EvalNearHits(wo, wi, groovePhi, grooveChi, n+1)
             value += tmpvalue
             pdf += tmppdf
+            #if nearHit:
+            #    continue
             (farHit, tmpvalue, tmppdf) = self.EvalFarHits(wo, wi, groovePhi, grooveChi, n+1)
             value += tmpvalue
             pdf += tmppdf

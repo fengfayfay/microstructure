@@ -23,7 +23,13 @@ def XIntersect(psi, theta, phi):
     return x
 
 
-def far(theta, phi, maxX, hasMaxX, range):
+def addHit(hits, xi, bcount,  side, interval, range):
+    ratio = (interval[1] - interval[0])/range
+    if ratio > .000001:
+        xi = mt.degrees(xi)
+        hits.append((xi, ratio, bcount, side))
+
+def far(theta, phi, maxX, hasMaxX, hitrange):
 
     gAngle = 2.0 * theta 
     psi_min = mt.pi - 2.0 *(theta + phi)
@@ -57,22 +63,16 @@ def far(theta, phi, maxX, hasMaxX, range):
         xi_max *= -1 
    
     hits = []
-    min_ratio = (x_critical_intersect - x_min_intersect)/range
-    max_ratio = (x_max_intersect - x_critical_intersect)/range
-    xi_min = mt.degrees(xi_min)
-    xi_max = mt.degrees(xi_max)
-    hits.append(((xi_min, n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'left'))
-    hits.append(((xi_max, n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'left')) 
+    addHit(hits, xi_min, n_min, 'left', (x_min_intersect, x_critical_intersect), hitrange)
+    addHit(hits, xi_max, n_max, 'left', (x_critical_intersect, x_max_intersect), hitrange)
     return hits
 
-def near(theta, phi, range):
+def near(theta, phi, hitrange):
     gAngle = 2.0 * theta 
     psi_max = mt.pi - 2.0 * phi
     psi_min = mt.pi - theta -phi 
 
     x_near_min = mt.cos(theta) * mt.tan(phi)
-    #x_near_min = mt.cos(theta) * mt.tan(theta-phi)
-    #print('minimum x value for near hit: ' + repr(x_near_min))
 
     n_min= mt.ceil(psi_min/gAngle)
     n_max = mt.ceil(psi_max/gAngle)
@@ -88,25 +88,17 @@ def near(theta, phi, range):
     x_max_intersect = mt.sin(theta)
     hits = []
     if n_min == n_max:
-        ratio = (x_max_intersect-x_min_intersect)/range
-        xi_min = mt.degrees(xi_min)
-        hits.append(((xi_min, n_min), ratio, (x_min_intersect, x_max_intersect), 'right'))
+        addHit(hits, xi_min, n_min, 'right', (x_min_intersect, x_max_intersect), hitrange)
     else:
         x_critical_intersect = (x_max_intersect + x_min_intersect) * 0.5
         if phi != theta:
             yc = mt.cos(theta) * (1.0 - mt.sin(2.0 * n_min * theta + theta - phi)/ mt.sin(theta-phi))
             x_critical_intersect = mt.sin(theta) - yc * mt.tan(theta)    
-            
-        min_ratio = (x_critical_intersect - x_min_intersect)/range
-        max_ratio = (x_max_intersect - x_critical_intersect)/range
-        xi_min = mt.degrees(xi_min)
-        xi_max = mt.degrees(xi_max)
-        hits.append(((xi_min, n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'right'))
-        hits.append(((xi_max, n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'right')) 
- 
+        addHit(hits, xi_min, n_min, 'right', (x_min_intersect, x_critical_intersect), hitrange)
+        addHit(hits, xi_max, n_max, 'right', (x_critical_intersect, x_max_intersect), hitrange)
     return (hits, x_near_min)
 
-def zipinPaper(theta, phi):
+def zipin(theta, phi):
 
     thetaR = mt.radians(theta)
     phiR = mt.radians(phi)
@@ -119,11 +111,7 @@ def zipinPaper(theta, phi):
     else:
         (hits, x_near_min) = near(thetaR, phiR, xmax*2) 
         hits += far(thetaR, phiR, x_near_min, True, xmax*2)
-    finals = []
-    for hit in hits:
-        if hit[1] > .00001:
-            finals.append(hit)
-    return finals 
+    return hits 
 
 
 def zipinBrdf(phi, chi):

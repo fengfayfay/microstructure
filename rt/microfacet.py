@@ -88,7 +88,6 @@ def RoughnessToAlpha(roughness):
 
 class Microfacet:
     def __init__(self, alpha_x, alpha_y):
-        self.alpha_x = RoughnessToAlpha(alpha_x)
         self.alpha_x = alpha_x
         self.alpha_y = self.alpha_x 
 
