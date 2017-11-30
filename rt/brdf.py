@@ -69,7 +69,7 @@ class Brdf:
 
 
 ANGLEERROR = .00001
-MAXBOUNCE = 20
+MAXBOUNCE = 2 
 
 class ZipinBrdf(Brdf):
 
@@ -81,28 +81,23 @@ class ZipinBrdf(Brdf):
         wo = wo.norm()
         if wo.z == 0:
             return (0, 0, None, None)
-        (wh, cosTheta, phi) = self.microfacet.Sample_wh(wo, u)
+        (wh, cosThetaH, phiH) = self.microfacet.Sample_wh(wo, u)
         if wh.x == 0 and wh.y == 0 and wh.z == 0:
             return (0, 0, None, None)
-        grooveAlpha = math.acos(cosTheta)
+        grooveAlpha = math.acos(cosThetaH)
         grooveTheta = math.pi * .5 - grooveAlpha 
         cosThetaO = microfacet.CosTheta(wo)
         groovePhi = math.acos(cosThetaO)
 
         
         hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
-        dprint(hits)
-        #dict = collections.defaultdict(float)
-        #for hit in hits:
-        #    dict[hit[0]] = hit[1]
         (sample, prob) = weight.weightedRandomChoice(hits)
 
         thetaH = sample[0]
-        #each sample contains the exit angle and the bounce count
         dprint(sample)
         sinThetaH = math.sin(thetaH)
         cosThetaH = math.cos(thetaH)
-        wi = microfacet.SphericalDirection(sinThetaH, cosThetaH, phi)
+        wi = microfacet.SphericalDirection(sinThetaH, cosThetaH, phiH)
 
         scaleD = .25 * vec3.dot(wi, wh)
         microfacetD = self.microfacet.D(wh) * scaleD
