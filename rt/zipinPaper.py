@@ -3,6 +3,8 @@ import sys as system
 
 MAXBOUNCE = 10 
 
+workInDegrees = True
+
 def clamp(x, xmax):
     x /= xmax
     if x < -1.: return -1.
@@ -50,8 +52,6 @@ def far(theta, phi, maxX, hasMaxX, range):
     x_min_intersect = XIntersect(psi_min, theta, phi)
 
     x_critical_intersect = XIntersect(n_min * gAngle, theta, phi);
-    #print('critical value of x: ' + repr(x_critical_intersect))
-    #print('ratio of min x: ' +  repr((x_critical_intersect-x_min_intersect)/(2.0*mt.sin(theta))))
 
     if n_min%2:
         xi_min *= -1 
@@ -61,8 +61,8 @@ def far(theta, phi, maxX, hasMaxX, range):
     hits = []
     min_ratio = (x_critical_intersect - x_min_intersect)/range
     max_ratio = (x_max_intersect - x_critical_intersect)/range
-    #hits.append(((mt.degrees(xi_min), n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'left'))
-    #hits.append(((mt.degrees(xi_max), n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'left')) 
+    xi_min = mt.degrees(xi_min) if workInDegrees else xi_min
+    xi_max = mt.degrees(xi_max) if workInDegrees else xi_max
     hits.append(((xi_min, n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'left'))
     hits.append(((xi_max, n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'left')) 
     return hits
@@ -91,17 +91,18 @@ def near(theta, phi, range):
     hits = []
     if n_min == n_max:
         ratio = (x_max_intersect-x_min_intersect)/range
-        #hits.append(((mt.degrees(xi_min), n_min), ratio, (x_min_intersect, x_max_intersect), 'right'))
+        xi_min = mt.degrees(xi_min) if workInDegrees else xi_min
         hits.append(((xi_min, n_min), ratio, (x_min_intersect, x_max_intersect), 'right'))
     else:
         x_critical_intersect = (x_max_intersect + x_min_intersect) * 0.5
         if phi != theta:
             yc = mt.cos(theta) * (1.0 - mt.sin(2.0 * n_min * theta + theta - phi)/ mt.sin(theta-phi))
             x_critical_intersect = mt.sin(theta) - yc * mt.tan(theta)    
+            
         min_ratio = (x_critical_intersect - x_min_intersect)/range
         max_ratio = (x_max_intersect - x_critical_intersect)/range
-        #hits.append(((mt.degrees(xi_min), n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'right'))
-        #hits.append(((mt.degrees(xi_max), n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'right')) 
+        xi_min = mt.degrees(xi_min) if workInDegrees else xi_min
+        xi_max = mt.degrees(xi_max) if workInDegrees else xi_max
         hits.append(((xi_min, n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'right'))
         hits.append(((xi_max, n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'right')) 
  
@@ -109,6 +110,7 @@ def near(theta, phi, range):
 
 def zipinPaper(theta, phi, isDegrees = True):
 
+    workInDegrees = isDegrees
     if isDegrees:
         thetaR = mt.radians(theta)
         phiR = mt.radians(phi)
