@@ -130,8 +130,6 @@ class ZipinBrdf(Brdf):
         dprint("theta: "+ repr(grooveTheta))
         grooveAlpha = math.pi * .5 - grooveTheta
         wh = microfacet.SphericalDirection(math.sin(grooveAlpha), math.cos(grooveAlpha), random.uniform(0, 1) * math.pi * 2.0)
-        #microfacetD = self.MicrofacetValue(wo, wi, wh, True)
-        #microfacetPdf = self.Pdf(wi, wh)
         scaleD = .25 * vec3.dot(wi, wh)
         microfacetD = self.microfacet.D(wh) * scaleD
         scalePdf = .25 * vec3.dot(wo, wh)

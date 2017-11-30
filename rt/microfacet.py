@@ -203,12 +203,10 @@ class Microfacet:
         return iG1i
         
 
-    def G1(self, w):
+    def G1(self, w, wh):
         return 1.0/(1.0+self.GLambda(w))
 
     def G(self, wo, wi, wh):
-        #return 1.0/(1.0 + self.GLambda(wo) + self.GLambda(wi))
-
         return self.GLambdaWalter(wo, wh) * self.GLambdaWalter(wi, wh)
 
     def Pdf(self, wh):
