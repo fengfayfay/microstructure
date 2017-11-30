@@ -72,7 +72,7 @@ MICROFACETTHRESH = .000001
 
 class ZipinBrdf(Brdf):
     def __init__(self, alpha_x, alpha_y, zipinVersion):
-        self.microfacet = microfacet.Microfacet(alpha_x, alpha_y)
+        self.microfacet = microfacet.Beckmann(alpha_x, alpha_y)
         print('zipinVersion: ', zipinVersion)
         if zipinVersion == 'Feng':
             self.zipin = zipinPaper.zipin
