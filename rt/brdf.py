@@ -70,6 +70,7 @@ class Brdf:
 
 ANGLEERROR = .00001
 MAXBOUNCE = 2 
+MICROFACETTHRESH = .000001
 
 class ZipinBrdf(Brdf):
 
@@ -90,10 +91,10 @@ class ZipinBrdf(Brdf):
         groovePhi = math.acos(cosThetaO)
 
         
-        hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
+        hits = zipinPaper.zipinPaper(math.degrees(grooveTheta), math.degrees(groovePhi))
         (sample, prob) = weight.weightedRandomChoice(hits)
 
-        thetaH = sample[0]
+        thetaH = math.radians(sample[0])
         dprint(sample)
         sinThetaH = math.sin(thetaH)
         cosThetaH = math.cos(thetaH)
@@ -129,26 +130,28 @@ class ZipinBrdf(Brdf):
         microfacetD = self.microfacet.D(wh) * scaleD
         scalePdf = .25 * vec3.dot(wo, wh)
         microfacetPdf = self.microfacet.Pdf(wh) * scalePdf
-        #dprint(wh, microfacetD, microfacetPdf, side)
-        hits = zipinPaper.zipinPaper(grooveTheta, groovePhi, False)
+        if microfacetD < MICROFACETTHRESH:
+            return (False, 0, 0)
+        hits = zipinPaper.zipinPaper(math.degrees(grooveTheta), math.degrees(groovePhi))
        
         value = 0;
         pdf = 0;
         for hit in hits:
             if hit[3] != side:
                 continue
-            hitChi = hit[0][0]
+            hitChi = math.radians(hit[0][0])
             diff = math.fabs(math.fabs(hitChi) - math.fabs(grooveChi))
             #diff = math.fabs(hitChi - grooveChi)
             if diff < ANGLEERROR and hit[1] > 0:
-                dprint(hit)
+                #print(groovePhi, grooveTheta, wh, microfacetD, microfacetPdf, hit[1], side)
+                #print(hit)
                 value += microfacetD * hit[1]
                 pdf += microfacetPdf * hit[1]
                 return (True, value, pdf)
         return (False, 0, 0)
         
 
-    def Eval(self, wo, wi):
+    def Eval(self, wo, wi, maxBounce = MAXBOUNCE):
         wo = wo.norm()
         wi = wi.norm()
         cosThetaO = microfacet.CosTheta(wo)
@@ -161,11 +164,11 @@ class ZipinBrdf(Brdf):
         value = 0
         pdf = 0
 
-        for n in range(1, MAXBOUNCE):
-            (nearHit, tmpvalue, tmppdf) = self.EvalNearHits(wo, wi, groovePhi, grooveChi, n)
+        for n in range(maxBounce):
+            (nearHit, tmpvalue, tmppdf) = self.EvalNearHits(wo, wi, groovePhi, grooveChi, n+1)
             value += tmpvalue
             pdf += tmppdf
-            (farHit, tmpvalue, tmppdf) = self.EvalFarHits(wo, wi, groovePhi, grooveChi, n)
+            (farHit, tmpvalue, tmppdf) = self.EvalFarHits(wo, wi, groovePhi, grooveChi, n+1)
             value += tmpvalue
             pdf += tmppdf
         return (value, pdf)

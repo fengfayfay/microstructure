@@ -3,8 +3,6 @@ import sys as system
 
 MAXBOUNCE = 10 
 
-workInDegrees = True
-
 def clamp(x, xmax):
     x /= xmax
     if x < -1.: return -1.
@@ -61,8 +59,8 @@ def far(theta, phi, maxX, hasMaxX, range):
     hits = []
     min_ratio = (x_critical_intersect - x_min_intersect)/range
     max_ratio = (x_max_intersect - x_critical_intersect)/range
-    xi_min = mt.degrees(xi_min) if workInDegrees else xi_min
-    xi_max = mt.degrees(xi_max) if workInDegrees else xi_max
+    xi_min = mt.degrees(xi_min)
+    xi_max = mt.degrees(xi_max)
     hits.append(((xi_min, n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'left'))
     hits.append(((xi_max, n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'left')) 
     return hits
@@ -91,7 +89,7 @@ def near(theta, phi, range):
     hits = []
     if n_min == n_max:
         ratio = (x_max_intersect-x_min_intersect)/range
-        xi_min = mt.degrees(xi_min) if workInDegrees else xi_min
+        xi_min = mt.degrees(xi_min)
         hits.append(((xi_min, n_min), ratio, (x_min_intersect, x_max_intersect), 'right'))
     else:
         x_critical_intersect = (x_max_intersect + x_min_intersect) * 0.5
@@ -101,22 +99,17 @@ def near(theta, phi, range):
             
         min_ratio = (x_critical_intersect - x_min_intersect)/range
         max_ratio = (x_max_intersect - x_critical_intersect)/range
-        xi_min = mt.degrees(xi_min) if workInDegrees else xi_min
-        xi_max = mt.degrees(xi_max) if workInDegrees else xi_max
+        xi_min = mt.degrees(xi_min)
+        xi_max = mt.degrees(xi_max)
         hits.append(((xi_min, n_min), min_ratio, (x_min_intersect, x_critical_intersect), 'right'))
         hits.append(((xi_max, n_max), max_ratio, (x_critical_intersect, x_max_intersect), 'right')) 
  
     return (hits, x_near_min)
 
-def zipinPaper(theta, phi, isDegrees = True):
+def zipinPaper(theta, phi):
 
-    workInDegrees = isDegrees
-    if isDegrees:
-        thetaR = mt.radians(theta)
-        phiR = mt.radians(phi)
-    else:
-        thetaR = theta
-        phiR = phi
+    thetaR = mt.radians(theta)
+    phiR = mt.radians(phi)
 
     xmax = mt.sin(thetaR)
     #print((-xmax, xmax))
@@ -126,7 +119,11 @@ def zipinPaper(theta, phi, isDegrees = True):
     else:
         (hits, x_near_min) = near(thetaR, phiR, xmax*2) 
         hits += far(thetaR, phiR, x_near_min, True, xmax*2)
-        return hits
+    finals = []
+    for hit in hits:
+        if hit[1] > .00001:
+            finals.append(hit)
+    return finals 
 
 
 def zipinBrdf(phi, chi):
