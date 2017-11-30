@@ -87,6 +87,21 @@ def RoughnessToAlpha(roughness):
     return 1.62142 + 0.819955 * x + 0.1734 * x * x + 0.0171201 * x * x * x + 0.000640711 * x * x * x * x
 
 class Microfacet:
+    def D(self, wh):
+        tan2Theta = Tan2Theta(wh)
+        if math.isinf(tan2Theta):
+            return 0
+        cos4Theta = Cos2Theta(wh)
+        cos4Theta *= cos4Theta
+        #return ChiPlus(wh.z) * math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
+        #                Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
+        return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
+                        Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
+
+    def Pdf(self, wh):
+        return self.D(wh) * math.fabs(CosTheta(wh))
+
+class Beckmann(Microfacet):
     def __init__(self, alpha_x, alpha_y):
         self.alpha_x = alpha_x
         self.alpha_y = self.alpha_x 
@@ -148,7 +163,8 @@ class Microfacet:
 
         return vec3.Vec3(-slope_x, -slope_y, 1).norm()
 
-    def BeckmannSample(self, wi, U1, U2):
+    def Sample_wh(self, wi, u):
+        U1, U2 = u
         if self.alpha_x == self.alpha_y:
             logSample = math.log(1.0-U1)
             tan2Theta = -self.alpha_x * self.alpha_x * logSample
@@ -161,23 +177,6 @@ class Microfacet:
             wh = -wh
             cosTheta = -cosTheta
         return (wh, cosTheta,  phi)
-
-
-    def Sample_wh(self, wo, u):
-        (wh, cosTheta, phi) = self.BeckmannSample(wo, u[0], u[1])
-        return (wh, cosTheta, phi)
-    
-    def D(self, wh):
-        tan2Theta = Tan2Theta(wh)
-        if math.isinf(tan2Theta):
-            return 0
-        cos4Theta = Cos2Theta(wh)
-        cos4Theta *= cos4Theta
-        #return ChiPlus(wh.z) * math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
-        #                Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
-        return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
-                        Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
-
 
     def GLambda(self, w):
         absTanTheta = math.fabs(TanTheta(w))
@@ -208,5 +207,3 @@ class Microfacet:
     def G(self, wo, wi, wh):
         return self.GLambdaWalter(wo, wh) * self.GLambdaWalter(wi, wh)
 
-    def Pdf(self, wh):
-        return self.D(wh) * math.fabs(CosTheta(wh))

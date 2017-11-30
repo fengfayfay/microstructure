@@ -21,7 +21,7 @@ def reflect(wo, n):
 
 class Brdf:
     def __init__(self, alpha_x, alpha_y):
-        self.microfacet = microfacet.Microfacet(alpha_x, alpha_y)
+        self.microfacet = microfacet.Beckmann(alpha_x, alpha_y)
    
     def Pdf(self, wo, wh):
         pdf = self.microfacet.Pdf(wh)
