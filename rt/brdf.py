@@ -24,8 +24,11 @@ class Brdf:
         self.microfacet = microfacet.Beckmann(alpha_x, alpha_y)
    
     def Pdf(self, wo, wh):
+        normFactor = 4.0 * vec3.dot(wo, wh)
+        if normFactor < microfacet.SMALLFLOAT:
+            return 0
         pdf = self.microfacet.Pdf(wh)
-        return pdf/(4.0* vec3.dot(wo, wh))
+        return pdf/normFactor
 
 
     #given wo, return sampled wi

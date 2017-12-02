@@ -5,6 +5,8 @@ import vec3
 # Microfacet
 #
 
+SMALLFLOAT = 1e-6
+
 def Clamp(w, min, max):
     if w < min:
         return min
@@ -105,13 +107,17 @@ class Microfacet:
 
 class Beckmann(Microfacet):
     def D(self, wh):
+        if wh.z < SMALLFLOAT:
+            return 0
         tan2Theta = Tan2Theta(wh)
         if math.isinf(tan2Theta):
             return 0
         cos4Theta = Cos2Theta(wh)
         cos4Theta *= cos4Theta
-        return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
-                        Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
+        #return math.exp(-tan2Theta * (Cos2Phi(wh) /(self.alpha_x * self.alpha_y) + 
+        #                Sin2Phi(wh)/(self.alpha_y * self.alpha_y)))/ (math.pi * self.alpha_x * self.alpha_y * cos4Theta)
+
+        return math.exp(-tan2Theta /(self.alpha_x * self.alpha_x)) / (math.pi * self.alpha_x * self.alpha_x * cos4Theta)
 
     def Pdf(self, wh):
         return self.D(wh) * math.fabs(CosTheta(wh))
@@ -134,7 +140,11 @@ class Beckmann(Microfacet):
     #walter Beckman G
     def GLambdaWalter(self, w, wh):
         costhetav = math.fabs(w.z)
+        if costhetav < SMALLFLOAT:
+            return 1
         tanthetav = math.sqrt(1.0 - costhetav*costhetav)/costhetav
+        if tanthetav < SMALLFLOAT:
+            return 1.0 
         a = 1.0/(self.alpha_x * tanthetav)
         if (a<1.6):
             iG1i = ChiPlus(vec3.dot(w, wh)/w.z) * (3.535*a + 2.181*a*a)/(1 + 2.276*a + 2.577*a*a)
