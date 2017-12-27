@@ -1,75 +1,109 @@
-from math import cos, sin, radians
-import sys
+from math import cos, sin, radians, degrees, ceil, pi
+from vec3 import Vec3, Z
+from vgroove import G1
 
-def clamp(x, xmax):
-    x /= xmax
-    if x < -1.: return -1.
-    if x >  1.: return  1
-    return x
+EPSILON = 1e-8
 
-def back(theta, psi, phi):
-    costheta = cos(radians(theta))
-    sintheta = sin(radians(theta))
-    cospsi = cos(radians(psi))
-    sinpsi = sin(radians(psi))
-    cosphi = cos(radians(phi))
-    sinphi = sin(radians(phi))
-    #print(sinphi,cosphi)
-    #print(sinpsi,cospsi)
-    #print(-sinpsi, costheta-cospsi, (costheta-cospsi)*sinphi, -sinpsi+(costheta-cospsi)*sinphi)
-    return clamp(-sinpsi+(costheta-cospsi)*sinphi/cosphi, sintheta)
-
+def clamp(val, min, max):
+    if val < min: val = min
+    if val > max: val = max
+    return val
 
 def far(theta, phi):
+
+    y_max =  sin(phi+theta)
+    y_min =  sin(phi-theta)
+    area = y_max - y_min
+    y_min = max(0, y_min)
+
+    #print('far',y_min, y_max)
+
     hits = []
-    bounce = 1
-    sign = 1.
-    psi = theta
-    xi = 180-phi-2*theta
+    n = 1
+    psi_min = theta + phi
     while True:
-        xmin = back(theta, psi, phi)
-        xmax = back(theta, min(psi+2*theta, 180-phi), phi)
-        if xmin < xmax:
-            hits.append((sign*xi,(xmax-xmin)/2,bounce,'left'))
-            #print('f', bounce, sign*xi)
-        psi += 2*theta
-        if psi > 180-phi:
+        psi_max = psi_min + 2*theta
+        y1 = sin(psi_min)
+        y2 = sin(psi_max)
+        y1 = clamp(y1, y_min, y_max)
+        y2 = clamp(y2, y_min, y_max)
+        a = abs(y2-y1)
+        #print(degrees(psi_min),y1,degrees(psi_max),y2,a)
+        if a > EPSILON:
+            sign = -1 if n % 2 == 0 else 1
+            #xi_min = (-1 if n % 2 == 0 else 1) * (pi - phi - 2*n*theta)
+            xi_min = sign * (pi - psi_min - theta)
+            #print(degrees(psi_min+theta),degrees(xi_min))
+            hits += [(degrees(xi_min), a/area, n, 'left')]
+        n += 1
+        psi_min = psi_max
+        if psi_min > pi:
             break
-        xi -= 2*theta
-        bounce += 1
-        sign *= -1
+
     return hits
 
 def near(theta, phi):
+    if theta < phi:
+        return []
+
+    y_max =  sin(phi+theta)
+    y_min =  sin(phi-theta)
+    area = y_max - y_min
+    y_max = min(0, y_max)
+    #print('near',y_min, y_max)
+
     hits = []
-    if phi <= theta: 
-        bounce = 1
-        sign = -1.
-        psi = -theta
-        xi = 180+phi-2*theta
-        while True:
-            xmax = back(theta, psi, phi)
-            xmin = back(theta, max(psi-2*theta, -180-phi), phi)
-            if xmin < xmax:
-                hits.append((sign*xi,(xmax-xmin)/2,bounce,'right'))
-            psi -= 2*theta
-            if psi < -180-phi:
-                break
-            xi -= 2*theta
-            bounce += 1
-            sign *= -1
+    n = 1
+    psi_min = phi - theta
+    while True:
+        psi_max = psi_min - 2*theta
+        y1 = sin(psi_min)
+        y2 = sin(psi_max)
+        y1 = clamp(y1, y_min, y_max)
+        y2 = clamp(y2, y_min, y_max)
+        a = abs(y2-y1)
+        #print(degrees(psi_min),y1,degrees(psi_max),y2,a)
+        if a > EPSILON:
+            sign = -1 if n % 2 == 1 else 1
+            #xi_min = sign * (pi - phi - 2*n*theta)
+            xi_min = sign * (pi + psi_min - theta)
+            #print(y1,y2,degrees(psi_min-theta),degrees(xi_min))
+            hits += [(degrees(xi_min), a/area, n, 'right')]
+        n += 1
+        psi_min = psi_max
+        if psi_min < -pi:
+            break
+
     return hits
 
+
 def zipin(theta, phi):
-    return near(theta, phi) + far(theta, phi)
+    assert theta > 0.
+    return far(theta,phi)+near(theta, phi)
+
+def surface(phi, theta):
+    H = Vec3(cos(theta), 0.0, sin(theta))
+    I = Vec3(sin(phi), 0.0, cos(phi))
+    return I, H
+
+def Gzipin(theta, phi):
+    N = Z
+    for hit in zipin(theta,phi):
+        angle, area, bounce, side = hit
+        if side == 'left' and bounce == 1:
+            H, I = surface(phi, theta)
+            return area*G1(N,H,I)
+    return 0
 
 if __name__ == "__main__":
+    import sys
     if len(sys.argv) != 3:
         print('python3 zipin.py theta phi')
         sys.exit(0)
 
-    theta = float(sys.argv[1])
-    phi = float(sys.argv[2])
+    theta = radians(float(sys.argv[1]))
+    phi = radians(float(sys.argv[2]))
 
-    print(zipin(theta, phi))
+    hits = zipin(theta, phi)
+    print(hits)
 

@@ -16,13 +16,14 @@ def pdf(mean, std, value):
 # Given a dictionary of the form element -> weight, selects an element
 # randomly based on distribution proportional to the weights. Weights can sum
 # up to be more than 1. 
-def weightedRandomChoice(weightDict):
+def weightedRandomChoice(weightDict, maxBounce = 1):
     weights = []
     elems = []
     for elem in weightDict:
-        #weights.append(weightDict[elem])
+        if elem[2] > maxBounce:
+            continue
         weights.append(elem[1])
-        elems.append(elem[0])
+        elems.append(elem)
     #print(weights)
     total = sum(weights)
     key = random.uniform(0, total)
@@ -36,5 +37,5 @@ def weightedRandomChoice(weightDict):
         if runningTotal > key:
             chosenIndex = i
             return (elems[chosenIndex], prob)
-    raise Exception('Should not reach here')
+    return (None, 0)
 

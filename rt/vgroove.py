@@ -1,5 +1,5 @@
 from math import sqrt, cos, radians
-from vec3 import Vec3, dot
+from vec3 import Vec3, dot, halfvector
 from ray import Ray, Hit, reflect, TMAX
 from plane import Plane
 
@@ -61,4 +61,14 @@ class VGroove:
             hit = self.intersect(ray)
         return hits
        
-        
+def G1(N,H,I):
+    HdotI = dot(H,I)
+    if HdotI <= 0.:
+        return 0.
+    NdotH = dot(N,H)
+    NdotI = dot(N,I)
+    return 2. * NdotH * NdotI / HdotI
+
+def G2(N,H,I,O):
+    return min(1,G1(N,H,I),G1(N,H,O))
+

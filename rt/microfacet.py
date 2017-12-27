@@ -1,5 +1,6 @@
 import math
 import vec3
+import vgroove
 
 #
 # Microfacet
@@ -105,6 +106,27 @@ class Microfacet:
     def Pdf(self, wh):
         return 1
 
+    #
+    # compute the average projection of the microfacet in the direction theta
+    #   this should be equal to cos(theta)
+    #   if theta == 0, then the projection should be 1
+    #
+    # this function assume the microfacet distribution is rotationally symmetric
+    # 
+    def visible(self, theta, n=100000):
+        I = vec3.FromAngle(theta)
+        N = vec3.Z
+        # integrate over the hemisphere
+        dcos = 1/n
+        dcos_sum= 0.0
+        for i in range(n+1):
+            cosh = i/n
+            H = vec3.FromCosAngle(cosh)
+            G = vgroove.G1(N,H,I) # other self-shadowing functions?
+            HdotI = vec3.dot(H,I)
+            dcos_sum += 0.5 * G * self.D(H) * HdotI * dcos
+        return 2 * math.pi * dcos_sum
+
 class Beckmann(Microfacet):
     def D(self, wh):
         if wh.z < SMALLFLOAT:
@@ -123,7 +145,7 @@ class Beckmann(Microfacet):
         return self.D(wh) * math.fabs(CosTheta(wh))
     
     def Sample_wh(self, wi, u):
-        U1, U2 = u
+        (U1, U2) = u
         if self.alpha_x == self.alpha_y:
             logSample = math.log(1.0-U1)
             tan2Theta = -self.alpha_x * self.alpha_x * logSample
@@ -152,8 +174,32 @@ class Beckmann(Microfacet):
             iG1i = ChiPlus(vec3.dot(w, wh)/w.z)
         return iG1i
 
-    def G(self, wo, wi, wh):
+    def GWalter(self, wo, wi, wh):
         return self.GLambdaWalter(wo, wh) * self.GLambdaWalter(wi, wh)
+
+    def GB(self, wo, wi, wh):
+        den = vec3.dot(wi, wh)
+        if den < SMALLFLOAT:
+            return 1
+        nom = 2.0 * wh.z* wi.z
+        if nom > den:
+            return 1
+        if nom < SMALLFLOAT:
+            return 0
+        return nom/den
+
+    def GBlin(self, wo, wi, wh):
+        gb = min(self.GB(wo, wi, wh), self.GB(wi, wo, wh))
+        #gb = self.GB(wo, wi, wh) * self.GB(wi, wo, wh)
+        return gb
+
+    def G(self, wo, wi, wh, mode = 1):
+        if mode == 1:
+            return self.GWalter(wo, wi, wh)
+        if mode == 2: 
+            return self.GBlin(wo, wi, wh)
+        return 1
+        
 
     #pbrt beckmann G computation, not used
     def GLambda(self, w):
