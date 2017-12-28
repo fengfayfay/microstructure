@@ -24,6 +24,8 @@ def checkCorrectO(O, I, H):
     if  dis > .00001:
         print (O, I, midOI, H)
     return dis < .00001
+
+
 ##################################################################
 #       compute theta (angle between w and N)                   ##
 ##################################################################
@@ -110,7 +112,7 @@ class Brdf:
 ANGLEERROR = 1e-6 
 MAXBOUNCE = 10 
 MICROFACETTHRESH = .000001
-MAXITER = 10
+MAXITER = 1
 
 
 ##################################################################
@@ -133,6 +135,8 @@ def computeZipinNormal(grooveTheta, side, wo):
     #if grooveTheta > math.pi * .5:
     #    print('error!')
     n = vec3.Vec3(math.cos(grooveTheta), 0, math.sin(grooveTheta))
+    #feng comment please why the sign works the way it does
+    #will this have impact when wo.y != 0 
     n.x *= math.copysign(1, wo.x) 
     if side == 'right':
         n.x *= -1
