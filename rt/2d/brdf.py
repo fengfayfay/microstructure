@@ -7,7 +7,6 @@ import ray
 import weight
 import collections
 import random
-import matrix
 
 debug = 0
 
@@ -215,7 +214,7 @@ class ZipinBrdf(Brdf):
     ######  Eval Helpers                            #################
     #       needs work, don't test yet                              #
     #################################################################
-    def EvalNearHits(self, wo, wi, phi, chi, n, wop, wip):
+    def EvalNearHits(self, wo, wi, phi, chi, n):
         xchi = chi 
         if (n+1)%2 == 1:
             xchi *= -1
@@ -224,9 +223,9 @@ class ZipinBrdf(Brdf):
         #print (math.degrees(theta))
         if theta <= phi or theta >= .5 * math.pi:
             return ((False, 0, 0), theta)
-        return (self.EvalHits(wo, wi, phi, chi, theta, n, 'right', wop, wip), theta)
+        return (self.EvalHits(wo, wi, phi, chi, theta, n, 'right'), theta)
 
-    def EvalFarHits(self, wo, wi, phi, chi, n, wop, wip):
+    def EvalFarHits(self, wo, wi, phi, chi, n):
         xchi = chi
         if n%2 == 1:
             xchi *= -1
@@ -235,12 +234,12 @@ class ZipinBrdf(Brdf):
         #print (math.degrees(theta))
         if theta < microfacet.SMALLFLOAT or theta >=.5 * math.pi:
             return ((False, 0, 0), theta)
-        return (self.EvalHits(wo, wi, phi, chi, theta, n, 'left', wop, wip), theta)
+        return (self.EvalHits(wo, wi, phi, chi, theta, n, 'left'), theta)
 
-    def EvalHits(self, wo, wi, groovePhi, grooveChi,  grooveTheta, n, side, wop, wip):
+    def EvalHits(self, wo, wi, groovePhi, grooveChi,  grooveTheta, n, side):
         
         #0< grooveTheta < pi * .5       
-        wh = computeZipinNormal(grooveTheta, side, wop)
+        wh = computeZipinNormal(grooveTheta, side, wo)
         microfacetValue = self.MicrofacetValue(wo, wi, wh, GMode = 0)
         microfacetPdf = self.Pdf(wo, wh)
         hits = self.zipin(math.degrees(grooveTheta), math.degrees(groovePhi))
@@ -263,7 +262,6 @@ class ZipinBrdf(Brdf):
             if diff < ANGLEERROR and hit[2] == n:
                 hitScale =  hit[4] 
                 if n == 1: 
-                    #blin = self.microfacet.GBlin(wop, wip, wh) 
                     blin = self.microfacet.GBlin(wo, wi, wh) 
                     if math.fabs(blin - hit[4])> .00001 or checkCorrectO(wo, wi, wh)==0:
                         print('wo, wi, wh')
@@ -275,7 +273,7 @@ class ZipinBrdf(Brdf):
                         print('brdf, pdf of wh')
                         print(microfacetValue, microfacetPdf)
                         print('bounce count ' + repr(n))
-                        GR = self.zipinRatio(wop, wh, hit[1])
+                        GR = self.zipinRatio(wo, wh, hit[1])
                         print('g terms')
                         print(blin, hit[4], GR)
                         print('hits')
@@ -287,24 +285,12 @@ class ZipinBrdf(Brdf):
         
 
     def Eval(self, wo, wi, phi_o=0, phi_i=0, maxBounce = MAXBOUNCE, minBounce = 1):
-
         wo = wo.norm()
         wi = wi.norm()
-        wh = (wo+wi).norm()
-
-        rotation = matrix.Rotate(wh)
-        wor = rotation.rotate(wo)
-        wir = rotation.rotate(wi)
-        wop = wor
-        wip = wir
-        wop.y = 0
-        wip.y = 0
-
-        wop = wop.norm()
-        wip = wip.norm()
-        thetaO = computeTheta(wop, 0)
-        thetaI = computeTheta(wip, 0)
-
+       
+        thetaO = computeTheta(wo, phi_o)
+        thetaI = computeTheta(wi, phi_i)
+       
        
         #ZIPIN CONVENTION SAYS CHI PHI ON THE SAME SIDE IS NEGATIVE 
         ##place to change angle convention
@@ -314,12 +300,12 @@ class ZipinBrdf(Brdf):
             thetaI = math.fabs(thetaI)
 
  
-        thetaO = math.fabs(thetaO)
-        diff = thetaI - thetaO
-        if math.fabs(diff) < 1e-5:
-            thetaI = thetaO + 1e-5
+        diff = math.fabs(thetaI - thetaO)
+        if diff < 1e-6:
+            thetaI = thetaI + 1e-6
             print (thetaO, thetaI) 
         
+        thetaO = math.fabs(thetaO)
 
         #print(math.degrees(thetaO), math.degrees(thetaI))
 
@@ -327,10 +313,10 @@ class ZipinBrdf(Brdf):
         pdf = 0
 
         # for n == 1, we can skip far check if near check is successful
-        for n in range(minBounce, maxBounce+1):
+        for n in range(minBounce, maxBounce):
              
-            ((nearHit, nearvalue, nearpdf), neartheta) = self.EvalNearHits(wor, wir, thetaO, thetaI, n, wop, wip)
-            ((farHit, farvalue, farpdf), fartheta) = self.EvalFarHits(wor, wir, thetaO, thetaI, n, wop, wip )
+            ((nearHit, nearvalue, nearpdf), neartheta) = self.EvalNearHits(wo, wi, thetaO, thetaI, n)
+            ((farHit, farvalue, farpdf), fartheta) = self.EvalFarHits(wo, wi, thetaO, thetaI, n)
             value += nearvalue + farvalue
             pdf += nearpdf + farpdf
             
