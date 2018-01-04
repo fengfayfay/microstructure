@@ -31,7 +31,9 @@ def checkCorrectO(O, I, H):
 #       compute theta (angle between w and N)                   ##
 ##################################################################
 
-def computeTheta(w, phi):
+def computeTheta(w, phi = None):
+    if phi == None:
+        phi = math.atan2(w.y, w.x)
     cosTheta = w.z
     cosPhi = math.cos(phi)
     sinPhi = math.sin(phi)
@@ -46,7 +48,7 @@ def computeTheta(w, phi):
     theta = math.atan2(sinTheta, cosTheta)
     return theta
 
-def makeWi(theta_i, phi_i, groovePhi):
+def makeWi(theta_i, groovePhi, wirY):
     thetaI = (math.radians(theta_i));
     if thetaI < 0:
         thetaI = math.fabs(thetaI) *  math.copysign(1, groovePhi)
@@ -54,10 +56,15 @@ def makeWi(theta_i, phi_i, groovePhi):
         thetaI = -math.fabs(thetaI) * math.copysign(1, groovePhi)
     sinThetaI = math.sin(thetaI)
     cosThetaI = math.cos(thetaI)
-    wi = microfacet.SphericalDirection(sinThetaI, cosThetaI, phi_i)
-    thetaIP = computeTheta(wi, phi_i)
-    assert(math.fabs(thetaIP-thetaI) < .00001)
-    return (wi, thetaI)
+    wip = microfacet.SphericalDirection(sinThetaI, cosThetaI, 0)
+    #thetaIP = computeTheta(wip, 0)
+    #assert(math.fabs(thetaIP-thetaI) < .00001)
+    wir = wip
+    len = 1-wirY * wirY
+    wir *= math.sqrt(len)
+    wir.y = wirY
+    thetaIP = computeTheta(wir)
+    return (wip, wir, thetaIP)
      
 
 
@@ -96,7 +103,7 @@ class Brdf:
         if wh.x == 0 and wh.y == 0 and wh.z == 0:
             return (0, 0, None)
         wi = reflect(wo, wh)
-        theta = computeTheta(wi, 0)
+        theta = computeTheta(wi)
         (value, pdf) = self.Eval(wo, wi, GMode)
         return (value, pdf, wi, theta)
     
@@ -172,24 +179,36 @@ class ZipinBrdf(Brdf):
     #       and angle orientations for grooveTheta
     #       groovePhi
     #       and final grooveChi
-    def Sample(self, wo, u, phi_o=0, maxBounce = MAXBOUNCE):
+    def Sample(self, wo, u, maxBounce = MAXBOUNCE):
         wo = wo.norm()
         if wo.z <=  microfacet.SMALLFLOAT:
             return (0, 0, None)
         
-        ##Zipin Phi = PBRT Theta
-        groovePhi = computeTheta(wo, phi_o)
-        
-        #phi_i, phi_o, phi_h will all be 0 for now
-        phi_h = phi_i = phi_o 
-
         for i in range(MAXITER): 
             (wh, cosThetaH, phiH) = self.microfacet.Sample_wh(wo, u)
             if wh.z < microfacet.SMALLFLOAT:
                 return (0, 0, None, None)
+        
+            wi = reflect(wo, wh)
+            (value, pdf) = self.Eval(wo, wi, maxBounce, 1)
+            thetaI  = computeTheta(wi)
+            return (value, pdf, wi, thetaI)
 
-            #grooveTheta guaranteed between 0 and .5pi
-            grooveAlpha = computeTheta(wh, phiH)
+            '''
+          
+            #print('phiH: ' + repr(math.degrees(phiH))) 
+            rotation = matrix.Rotate(wh)
+            whr = rotation.rotate(wh)
+            wop = wor = rotation.rotate(wo)
+
+            #print (whr, wh)
+            #whr = wh
+            #wop = wor = wo
+            wop.y = 0  
+            wop = wop.norm()
+
+            groovePhi = computeTheta(wop, 0)
+            grooveAlpha = computeTheta(whr, 0)
             grooveTheta = .5 * math.pi - math.fabs(grooveAlpha)
             
             sampleGroovePhi = math.degrees(math.fabs(groovePhi))
@@ -197,16 +216,12 @@ class ZipinBrdf(Brdf):
             hits = self.zipin(sampleGrooveTheta, sampleGroovePhi)
             (sample, prob) = weight.weightedRandomChoice(hits, maxBounce)
             if sample != None:
-                (wi, thetaI) = makeWi(theta_i=sample[0], phi_i=phi_i, groovePhi=groovePhi)
-                (value, pdf) = self.Eval(wo, wi, phi_o, phi_i, maxBounce)
-                '''
-                whp = computeZipinNormal(grooveTheta, sample[3], wo)
-                microfacetValue = self.MicrofacetValue(wo, wi, whp, GMode = 0)
-                microfacetPdf = self.Pdf(wo, whp)
-                value = microfacetValue * sample[4] 
-                pdf = microfacetPdf * sample[4] 
-                '''
+                (wip, wir, thetaI) = makeWi(theta_i=sample[0], groovePhi=groovePhi, wirY = -wor.y)
+                (value, pdf) = self.Eval(wor, wir, maxBounce, 1)
+                wi = rotation.inverse_rotate(wir)
+                #wi = wir
                 return (value, pdf, wi, thetaI)
+            '''
         return (0, 0, None, None)
 
 
@@ -251,7 +266,6 @@ class ZipinBrdf(Brdf):
 
         if microfacetValue < 1e-6:
             return (False, 0, 0)
-
        
         value = 0;
         pdf = 0;
@@ -263,7 +277,6 @@ class ZipinBrdf(Brdf):
             if diff < ANGLEERROR and hit[2] == n:
                 hitScale =  hit[4] 
                 if n == 1: 
-                    #blin = self.microfacet.GBlin(wop, wip, wh) 
                     blin = self.microfacet.GBlin(wo, wi, wh) 
                     if math.fabs(blin - hit[4])> .00001 or checkCorrectO(wo, wi, wh)==0:
                         print('wo, wi, wh')
@@ -286,7 +299,7 @@ class ZipinBrdf(Brdf):
         return (False, 0, 0)  
         
 
-    def Eval(self, wo, wi, phi_o=0, phi_i=0, maxBounce = MAXBOUNCE, minBounce = 1):
+    def Eval(self, wo, wi, maxBounce = MAXBOUNCE, minBounce = 1):
 
         wo = wo.norm()
         wi = wi.norm()

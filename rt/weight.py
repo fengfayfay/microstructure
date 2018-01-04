@@ -20,8 +20,8 @@ def weightedRandomChoice(weightDict, maxBounce = 1):
     weights = []
     elems = []
     for elem in weightDict:
-        if elem[2] > maxBounce:
-            continue
+#        if elem[2] > maxBounce:
+#            continue
         weights.append(elem[1])
         elems.append(elem)
     #print(weights)

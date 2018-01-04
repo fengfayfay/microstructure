@@ -24,20 +24,19 @@ class Rotate:
     
     def computeRotation(self):
         self.phi = math.atan2(self.wh.y, self.wh.x)
-        print(math.degrees(self.phi))
+        #print(math.degrees(self.phi))
         
-        if self.wh.z > 0:
-            gamma = -self.phi
-            sinGamma = math.sin(gamma)
-            cosGamma = math.cos(gamma)
-            self.rotation = []
-            self.rotation.append(vec3.Vec3(cosGamma, -sinGamma, 0))
-            self.rotation.append(vec3.Vec3(sinGamma, cosGamma, 0))
-            self.rotation.append(vec3.Vec3(0, 0, 1))
-            self.inverse = []
-            self.inverse.append(vec3.Vec3(cosGamma, sinGamma, 0))
-            self.inverse.append(vec3.Vec3(-sinGamma, cosGamma, 0))
-            self.inverse.append(vec3.Vec3(0, 0, 1))
+        gamma = -self.phi
+        sinGamma = math.sin(gamma)
+        cosGamma = math.cos(gamma)
+        self.rotation = []
+        self.rotation.append(vec3.Vec3(cosGamma, -sinGamma, 0))
+        self.rotation.append(vec3.Vec3(sinGamma, cosGamma, 0))
+        self.rotation.append(vec3.Vec3(0, 0, 1))
+        self.inverse = []
+        self.inverse.append(vec3.Vec3(cosGamma, sinGamma, 0))
+        self.inverse.append(vec3.Vec3(-sinGamma, cosGamma, 0))
+        self.inverse.append(vec3.Vec3(0, 0, 1))
 
     def rotate(self, w):
         wr = multiply(self.rotation, w)
